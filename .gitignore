@@ -1,0 +1,17 @@
+# 备份文件不进仓库
+index.html.bak*
+*.bak
+*.bak[0-9]*
+
+# 工具脚本与工作目录
+*.py
+__pycache__/
+.workbuddy/
+
+# 未在页面引用的中文名素材（避免上传后路径编码不一致）
+img/微信图片_*.jpg
+
+# 系统垃圾
+Thumbs.db
+desktop.ini
+.DS_Store

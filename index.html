@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>顶级游戏辅助自助商城</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0b1120; }
+
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .tech-border {
+            position: relative;
+            overflow: hidden;
+        }
+        .tech-border::after {
+            content: ''; position: absolute; bottom: 0; left: -100%; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+            animation: scanline 2s linear infinite;
+        }
+        @keyframes scanline { 100% { left: 100%; } }
+
+        .neon-text { text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #38bdf8; border-radius: 4px; }
+
+        /* 分类条横向滚动，隐藏滚动条 */
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 50; align-items: center; justify-content: center; padding: 1rem; }
+
+        .tab-btn { transition: all 0.3s ease; border-bottom: 2px solid transparent; color: #94a3b8; white-space: nowrap; }
+        .tab-btn.active { color: #38bdf8; border-bottom-color: #38bdf8; background: rgba(56, 189, 248, 0.1); text-shadow: 0 0 8px rgba(56,189,248,0.4); }
+
+        .product-card { transition: all 0.2s ease; border: 1px solid rgba(51, 65, 85, 0.8); }
+        .product-card:hover { border-color: rgba(56, 189, 248, 0.4); background: rgba(30, 41, 59, 0.8); }
+        .product-card.selected {
+            border-color: #38bdf8;
+            background: rgba(14, 165, 233, 0.1);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2) inset;
+        }
+        .tag-reco { background: linear-gradient(90deg, #f59e0b, #ef4444); color: white; }
+        .tag-stable { background: linear-gradient(90deg, #10b981, #059669); color: white; }
+    </style>
+    <!-- 商城资源配置：图片 / 二维码 / 联系方式全部在这里维护 -->
+    <script src="img/config.js"></script>
+</head>
+<body class="text-slate-200 min-h-screen flex justify-center sm:py-6">
+
+<div class="w-full max-w-md relative pb-10">
+
+    <!-- 背景装饰光晕 -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-64 bg-sky-500/10 blur-[80px] pointer-events-none"></div>
+
+    <div class="glass-panel p-5 mb-5 sm:rounded-2xl relative z-10">
+        <!-- 头部按钮 -->
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-5">
+            <div class="flex gap-2">
+                <button onclick="openModal('supportModal')" class="tech-border bg-slate-800/80 hover:bg-slate-700 px-3 py-2 rounded-lg text-xs font-bold text-sky-400 transition flex items-center gap-1.5 border border-sky-500/30">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    客服
+                </button>
+                <button onclick="openModal('complainModal')" class="tech-border bg-red-900/30 hover:bg-red-800/50 px-2 sm:px-3 py-2 rounded-lg text-[11px] sm:text-xs font-bold text-red-400 transition flex items-center gap-1.5 border border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    投诉(诈骗\售假等)
+                </button>
+                <button onclick="openModal('refundModal')" class="tech-border bg-orange-900/30 hover:bg-orange-800/50 px-2 sm:px-3 py-2 rounded-lg text-[11px] sm:text-xs font-bold text-orange-400 transition flex items-center gap-1.5 border border-orange-500/30 shadow-[0_0_10px_rgba(249,115,22,0.1)]">
+                    💰 退款
+                </button>
+            </div>
+            <button onclick="openModal('orderModal')" class="tech-border bg-slate-800/80 hover:bg-slate-700 px-3 py-2 rounded-lg text-xs font-bold text-sky-400 transition flex items-center gap-1.5 border border-sky-500/30">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                查单
+            </button>
+        </div>
+
+        <!-- 官方店铺名片 -->
+        <div class="flex items-center gap-4 bg-gradient-to-r from-slate-800/60 to-slate-800/30 p-4 rounded-xl border border-sky-500/20 shadow-inner">
+            <!-- 头像 -->
+            <div class="w-14 h-14 rounded-full border-2 border-sky-400/50 overflow-hidden flex-shrink-0 shadow-[0_0_10px_rgba(56,189,248,0.3)] bg-slate-700 relative">
+                <img src="img/avatar.jpg" alt="Avatar" class="w-full h-full object-cover">
+            </div>
+
+            <!-- 店铺信息 -->
+            <div class="flex flex-col flex-1">
+                <div class="flex items-center gap-1.5">
+                    <h1 class="text-lg font-bold text-white tracking-wide neon-text">川川官方店</h1>
+                    <!-- 官方认证蓝色打勾图标 -->
+                    <svg class="w-4 h-4 text-sky-400 drop-shadow-[0_0_5px_rgba(56,189,248,0.8)]" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+
+                <div class="flex items-center gap-3 mt-1.5 text-[11px]">
+                    <span class="text-slate-400"><span id="goods-count">--</span> 商品</span>
+                    <!-- 盾牌与保证金 -->
+                    <div class="flex items-center gap-1 text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                        <span class="font-bold tracking-wider">保证金 1500元</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 核心保障 -->
+    <div class="grid grid-cols-2 gap-3 mb-5 px-4 sm:px-0 relative z-10">
+        <div class="glass-panel p-3 rounded-xl text-[11px] text-sky-200 flex items-center justify-center gap-1 font-bold"><span class="text-sky-400">⚡</span> 扫码即发</div>
+        <div class="glass-panel p-3 rounded-xl text-[11px] text-sky-200 flex items-center justify-center gap-1 font-bold"><span class="text-sky-400">🛡️</span> 稳定运行</div>
+        <div class="glass-panel p-3 rounded-xl text-[11px] text-sky-200 flex items-center justify-center gap-1 font-bold"><span class="text-emerald-400">💎</span> 封号包退</div>
+        <div class="glass-panel p-3 rounded-xl text-[11px] text-sky-200 flex items-center justify-center gap-1 font-bold"><span class="text-sky-400">🎧</span> 24小时客服</div>
+    </div>
+
+    <!-- 购买提示语 -->
+    <div class="mb-5 px-4 sm:px-0 relative z-10">
+        <div class="glass-panel p-3.5 rounded-xl border border-sky-500/20 bg-slate-800/40 shadow-inner">
+            <div class="flex flex-col gap-1.5 text-xs sm:text-sm text-slate-300">
+                <p class="flex items-center gap-2">
+                    <span class="text-base drop-shadow-md">🎁</span>
+                    <span class="tracking-wide">下单后自动提供 <span class="text-sky-400 font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">下载链接</span> 与 <span class="text-sky-400 font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]">使用教程</span></span>
+                </p>
+                <div class="h-[1px] w-full bg-gradient-to-r from-transparent via-slate-700/50 to-transparent my-0.5"></div>
+                <p class="flex items-center gap-2">
+                    <span class="text-base drop-shadow-md">💬</span>
+                    <span class="tracking-wide">使用过程中有任何问题，可随时联系客服，<span class="text-emerald-400 font-bold drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] border-b border-emerald-500/30">包教会</span></span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类Tab（数据驱动，全部平铺展示） -->
+    <div id="tab-bar" class="grid grid-cols-3 gap-1.5 mb-4 px-4 sm:px-0 sm:grid-cols-4 relative z-10"></div>
+
+    <!-- 商品列表 -->
+    <div id="product-list" class="mb-5 px-4 sm:px-0 relative z-10"></div>
+
+    <!-- 商品详情框 -->
+    <div id="selected-box" class="hidden mb-5 px-4 sm:px-0 relative z-10">
+        <div class="glass-panel p-4 rounded-xl border border-sky-500/30 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-20 h-20 bg-sky-500/10 blur-[20px] rounded-full"></div>
+            <p class="text-[10px] text-slate-400 mb-2 flex items-center gap-1">
+                <svg class="w-3 h-3 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                当前选中：
+            </p>
+            <h3 id="sel-name" class="font-bold text-sky-300 mb-2 text-lg neon-text"></h3>
+            <div id="sel-meta" class="flex flex-wrap items-center gap-2 mb-3"></div>
+            <!-- 展示图集 / 实战视频（来源 img/config.js） -->
+            <div id="sel-media" class="hidden mb-3"></div>
+            <div id="sel-desc" class="text-[12px] text-slate-300 h-auto bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 whitespace-pre-wrap break-words leading-relaxed"></div>
+        </div>
+    </div>
+
+    <!-- 支付区域 -->
+    <div class="glass-panel p-4 mx-4 sm:mx-0 rounded-xl relative z-10 border border-sky-500/20">
+        <input type="text" id="contact" placeholder="请输入QQ或联系方式..." class="w-full bg-slate-900/80 border border-slate-700 py-2.5 px-3 rounded-lg text-sky-100 mb-3 text-[13px] focus:outline-none focus:border-sky-400 shadow-inner transition-colors">
+
+        <div class="flex gap-2.5 mb-4">
+            <label class="flex items-center gap-2 cursor-pointer bg-slate-800/80 hover:bg-slate-700 p-2.5 rounded-lg flex-1 border border-slate-600 transition">
+                <input type="radio" name="payMethod" value="wechat" checked class="accent-emerald-500 w-3.5 h-3.5">
+                <span class="text-[13px] font-bold text-emerald-400">微信支付</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer bg-slate-800/80 hover:bg-slate-700 p-2.5 rounded-lg flex-1 border border-slate-600 transition">
+                <input type="radio" name="payMethod" value="alipay" class="accent-sky-500 w-3.5 h-3.5">
+                <span class="text-[13px] font-bold text-sky-400">支付宝支付</span>
+            </label>
+        </div>
+
+        <div class="flex items-end justify-between mb-4 border-t border-slate-700/50 pt-4">
+            <p class="text-xs text-slate-400">成交只是服务的开始！</p>
+            <div class="text-right">
+                <p class="text-[10px] text-slate-400 mb-1">支付金额：</p>
+                <div id="price-display" class="text-sky-400 font-bold text-2xl neon-text">¥0.00</div>
+                <div id="price-orig" class="text-[10px] text-slate-500 line-through hidden"></div>
+            </div>
+        </div>
+
+        <button id="payBtn" class="w-full bg-gradient-to-r from-sky-600 to-blue-600 py-3 rounded-lg font-bold text-white text-[15px] shadow-[0_0_20px_rgba(2,132,199,0.4)] transition hover:shadow-[0_0_30px_rgba(2,132,199,0.6)] hover:from-sky-500 hover:to-blue-500 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" onclick="showPayModal()">立即下单 · 扫码支付</button>
+    </div>
+</div>
+
+<!-- 提示框 (取代alert) -->
+<div id="toastMessage" class="fixed top-10 left-1/2 -translate-x-1/2 bg-slate-800/95 border border-sky-500/50 text-sky-300 px-5 py-2.5 rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.3)] z-[100] transition-all duration-300 opacity-0 pointer-events-none font-bold text-sm hidden"></div>
+
+<!-- 联系客服弹窗 -->
+<div id="supportModal" class="modal">
+    <div class="glass-panel border border-sky-500/30 w-full max-w-sm p-5 rounded-2xl text-center relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-sky-500 to-transparent"></div>
+        <h2 class="text-white font-bold mb-3 text-base">联系在线客服</h2>
+        <p id="cfg-kf-tip" class="text-slate-300 mb-3 text-[12px]">微信扫码 或 点击按钮 直接联系在线客服</p>
+        <!-- 客服二维码：长按或截图后用微信扫一扫 -->
+        <div class="flex justify-center mb-3 relative">
+            <img id="cfg-kf-qr" src="" alt="客服二维码"
+                 class="w-44 h-auto max-h-52 object-contain rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.25)] border border-slate-700/50 bg-white">
+        </div>
+        <a id="cfg-kf-link" href="#" target="_blank" class="block w-full bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 py-2.5 rounded-lg text-white font-bold shadow-[0_0_15px_rgba(16,185,129,0.4)] transition mb-3">
+            ⚡ 一键跳转 · 在线客服
+        </a>
+        <button class="w-full bg-slate-700/80 hover:bg-slate-600 py-2.5 rounded-lg text-slate-300 transition font-bold border border-slate-600" onclick="closeModal('supportModal')">关闭</button>
+    </div>
+</div>
+
+<!-- 订单查询弹窗 -->
+<div id="orderModal" class="modal">
+    <div class="glass-panel border border-sky-500/30 w-full max-w-sm p-5 rounded-2xl text-center relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-sky-500 to-transparent"></div>
+        <h2 class="text-white font-bold mb-3 text-base">自助订单查询</h2>
+        <input type="text" id="orderInput" placeholder="输入订单号或联系方式" class="w-full bg-slate-900/80 border border-slate-700 py-2.5 px-3 rounded-lg text-sky-100 mb-3 text-[13px] focus:outline-none focus:border-sky-400">
+        <button class="w-full bg-sky-600 hover:bg-sky-500 py-2.5 rounded-lg text-white mb-3 font-bold transition" onclick="document.getElementById('orderResult').innerText='没有查询到订单喔'">查询</button>
+        <p id="orderResult" class="text-red-400 text-sm font-bold mb-3 h-5 drop-shadow-[0_0_5px_rgba(248,113,113,0.5)]"></p>
+        <button class="w-full bg-slate-700/80 hover:bg-slate-600 py-2.5 rounded-lg text-slate-300 transition" onclick="closeModal('orderModal');document.getElementById('orderResult').innerText=''">返回</button>
+    </div>
+</div>
+
+<!-- 退款弹窗 -->
+<div id="refundModal" class="modal">
+    <div class="glass-panel border border-orange-500/40 w-full max-w-sm p-5 rounded-2xl text-center relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent"></div>
+        <div class="w-16 h-16 bg-orange-900/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.3)]">
+            <span class="text-3xl">💰</span>
+        </div>
+        <h2 class="text-white font-bold mb-2 text-base">系统提示</h2>
+        <p class="text-slate-300 mb-5 font-bold text-[13px] tracking-wide">您还可以下订单喔</p>
+        <div class="flex gap-4">
+            <button class="flex-1 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 py-2.5 rounded-lg text-white transition font-bold shadow-[0_0_15px_rgba(2,132,199,0.4)]" onclick="closeModal('refundModal'); document.getElementById('product-list').scrollIntoView({behavior: 'smooth', block: 'center'})">去下单</button>
+            <button class="flex-1 bg-slate-700/80 hover:bg-slate-600 py-2.5 rounded-lg text-slate-300 transition font-bold border border-slate-600" onclick="closeModal('refundModal')">取消</button>
+        </div>
+    </div>
+</div>
+
+<!-- 支付弹窗 -->
+<div id="payModal" class="modal">
+    <div class="glass-panel border border-sky-500/40 w-full max-w-sm p-5 rounded-2xl text-center relative">
+        <h2 class="text-white font-bold mb-3 text-base" id="payTitle">扫码支付</h2>
+
+        <!-- 显示支付金额 -->
+        <div class="mb-4 p-3 bg-slate-900/50 rounded-xl border border-sky-500/20">
+            <p class="text-slate-400 text-xs">需支付金额</p>
+            <p id="pay-amount-display" class="text-2xl font-bold text-sky-400 neon-text">¥0.00</p>
+        </div>
+
+        <div class="flex justify-center mb-4 relative">
+            <div class="absolute inset-0 border-2 border-sky-500/50 rounded-lg w-40 h-40 left-1/2 -translate-x-1/2 animate-pulse pointer-events-none"></div>
+            <img id="qrImg" src="" onerror="qrLoadState(1)" onload="qrLoadState(0)"
+                 class="w-40 h-40 bg-white rounded-lg p-2 object-contain shadow-[0_0_20px_rgba(56,189,248,0.2)]">
+            <!-- 远程收款码拉取失败时的兜底提示，避免留一片空白 -->
+            <div id="qrErrTip" style="display:none"
+                 class="absolute w-40 h-40 left-1/2 -translate-x-1/2 bg-slate-900 border border-red-500/40 rounded-lg flex-col items-center justify-center text-center px-2 text-[11px] leading-relaxed text-red-400 font-bold">
+                收款码加载失败<br><span class="text-slate-400 font-normal">请稍后重试或联系客服</span>
+            </div>
+        </div>
+
+        <div class="bg-red-900/40 border border-red-500/50 p-3 rounded-xl mb-4 text-left shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+            <p class="text-red-400 text-xs font-bold mb-1.5 flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                支付操作指引：
+            </p>
+            <p class="text-slate-300 text-[11px] leading-relaxed pl-5">
+                1. 请长按或截图保存二维码。<br>
+                2. 打开微信 / 支付宝扫描相册中的图片。<br>
+                3. <span class="text-amber-400 font-bold border-b border-amber-400/50 pb-0.5">务必支付订单的精确金额</span>，付款后把截图发给客服即可发货。
+            </p>
+        </div>
+
+        <p id="pay-status-msg" class="text-red-400 text-sm font-bold mb-4 h-5 drop-shadow-[0_0_5px_rgba(248,113,113,0.5)]"></p>
+
+        <div class="grid grid-cols-1 gap-2.5">
+            <button class="w-full bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-lg text-white text-sm font-bold shadow-[0_0_15px_rgba(16,185,129,0.4)] transition" id="jumpPayBtn" onclick="jumpPayApp()">截图后 一键跳转微信</button>
+            <button class="w-full bg-sky-600 hover:bg-sky-500 py-2.5 rounded-lg text-white text-sm font-bold shadow-[0_0_15px_rgba(2,132,199,0.4)] transition" onclick="goKfAfterPay()">已支付 · 联系客服发货</button>
+            <button class="w-full bg-transparent hover:bg-slate-800 py-2.5 rounded-lg text-slate-400 text-sm transition" onclick="closeModal('payModal')">取消支付</button>
+        </div>
+    </div>
+</div>
+
+<!-- 投诉弹窗 -->
+<div id="complainModal" class="modal">
+    <div class="glass-panel border border-red-500/40 w-full max-w-sm p-5 rounded-2xl text-center relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent"></div>
+        <div class="w-16 h-16 bg-red-900/50 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+            <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </div>
+        <h2 class="text-white font-bold mb-2 text-base">系统提示</h2>
+        <p class="text-slate-300 mb-5 font-bold text-[13px] tracking-wide">您还可以下订单喔</p>
+        <div class="flex gap-4">
+            <button class="flex-1 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 py-2.5 rounded-lg text-white transition font-bold shadow-[0_0_15px_rgba(2,132,199,0.4)]" onclick="closeModal('complainModal'); document.getElementById('product-list').scrollIntoView({behavior: 'smooth', block: 'center'})">去下单</button>
+            <button class="flex-1 bg-slate-700/80 hover:bg-slate-600 py-2.5 rounded-lg text-slate-300 transition font-bold border border-slate-600" onclick="closeModal('complainModal')">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ============================================================
+       数据区。CATEGORIES 顺序 = 分类条顺序。
+       item 字段：
+         id      唯一标识（页面内不可重复）
+         name    商品名
+         price   售价（数字）
+         img     详情图，留空则用分类图
+         desc    详情文本（换行用 \n）
+         stock   库存；0 或缺省 = 不显示
+         tag     徽标：reco / fuli / baopei / stable
+         tag2    第二徽标
+       ============================================================ */
+    const CATEGORIES = /* DATA_START */
+[
+ {
+  "key": "ios",
+  "name": "IOS 和平精英全系统",
+  "img": "img/cat_ios.jpg",
+  "items": [
+   {
+    "id": "i1",
+    "name": "全系统CN",
+    "price": 108,
+    "img": "img/item_i1.jpg",
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n🔥核心功能\n  •✅定制绘制：透视清晰，极致流畅，不掉帧\n  •💎自瞄漏打：智能锁定暴露位，漏哪打哪，打伤害更顺手，实战体验更强，纯裸奔写法，高隐匿、低风险，大号首选\n🔐安全优化:Hook 断点封包,毫秒级拦截后端注入,检测前端数据不回传,不触发额外校验,优化高风险问题稳定性进一步提升\n无论是老系统还是全系统CN 均可流畅运行,告别环境焦虑,实现真正的全系统覆盖\n采用独家纯裸奔写法,无需端口隐蔽性更强,安装使用更便捷",
+    "tag": "stable",
+    "tag2": "reco"
+   },
+   {
+    "id": "i2",
+    "name": "Via全系统内透",
+    "price": 44,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\niOS全网唯一全系统内透\n无需电脑/无需越狱/无需巨魔 【利用网页漏洞在线安装科技！】无三方/无任何禁令\n利用Safari浏览器网站在线安装/简单方便上手\n支持全系统",
+    "tag": "fuli"
+   },
+   {
+    "id": "i3",
+    "name": "A全系统内透",
+    "price": 68,
+    "img": "img/item_i3.jpg",
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n无需电脑/无需越狱/无需巨魔 【利用网页漏洞在线安装科技！】无三方/无任何禁令\n利用Safari浏览器网站在线安装/简单方便上手\n功能：内透",
+    "tag": "reco"
+   },
+   {
+    "id": "i4",
+    "name": "ST巨魔",
+    "price": 138,
+    "img": "img/item_i4.jpg",
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n功能详情：观战/人数/方框/骨骼/信息/血量/距离/手持/背敌/人机/载具/投掷物/枪械/药品/盒子/盔甲/配件\n拍下后卡网会自动下发网盘及使用教程",
+    "tag": "baopei",
+    "tag2": "reco"
+   },
+   {
+    "id": "i5",
+    "name": "NV单绘制",
+    "price": 58,
+    "img": "img/item_i5.jpg",
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n功能：人物绘制，物资绘制，模型渲染（掩体变色），手雷预警\n采用全新源码，最新内核读取写法，不同于市面上其他项目，安全系数更高，0追封0拉闸",
+    "tag": "fuli"
+   },
+   {
+    "id": "i6",
+    "name": "SKC裸奔追踪",
+    "price": 99,
+    "img": "img/item_i6.jpg",
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程",
+    "tag": "stable",
+    "tag2": "reco"
+   },
+   {
+    "id": "g_ds6cce",
+    "name": "FuckSTE",
+    "price": 128,
+    "orig": 198,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能： 单绘制、射线、方框、信息、手持、背敌等\n⚠️ 无法进入辅助则代表环境问题，终极大法抹除重置手机解决一切问题。\n下单后自动下发网盘及使用教程",
+    "stock": 3
+   },
+   {
+    "id": "g_obmb55",
+    "name": "星巴克STE内核（全系统）",
+    "price": 88,
+    "orig": 138,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能详情：观战/人数/方框/骨骼/信息/血量/距离/手持/背敌/人机/载具/投掷物/枪械/药品/盒子/盔甲/配件\n下单后自动下发网盘及使用教程",
+    "stock": 59
+   },
+   {
+    "id": "g_ajq7v3",
+    "name": "全系统Core自签",
+    "price": 88,
+    "orig": 138,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：✅全功能绘制➕掩体判断\n下单后自动下发网盘及使用教程",
+    "stock": 57
+   },
+   {
+    "id": "g_pg1xcj",
+    "name": "和平雷达（一卡通）",
+    "price": 188,
+    "orig": 298,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n和平、三角洲卡密通用。\n观战可用：电脑/平板/手机（无任何限制，苹果安卓都可以观战）\n视频效果点这里",
+    "stock": 31
+   }
+  ]
+ },
+ {
+  "key": "ios-all",
+  "name": "IOS 和平定制",
+  "img": "",
+  "items": [
+   {
+    "id": "i7",
+    "name": "止痛药Air",
+    "price": 128,
+    "img": "img/item_i7.jpg",
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n采用模型漏打/丝滑流畅不卡顿/多线程处理/极致流畅/稳定绘制 无后台运行/过直播/主播 俱乐部打手必备 更换全新源码,安全系数更高,采用不同于市面其他内核读取",
+    "tag": "reco"
+   },
+   {
+    "id": "i8",
+    "name": "Via-全火版",
+    "price": 98,
+    "img": "img/item_i8.jpg",
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\nVia和平全火版【内置端口 防Via里面的所有功能】\n绘制/物质/自瞄/360度自瞄/子弹追踪/掩体判断\n枪械功能：\n无后座力/子弹聚点/子弹变大/枪镜防抖/射击速度/切枪速度/开镜速度/无限子弹/单发自动/范围功能/头部范国/动态范围\n暴力功能：\n枪械魂环/自鸟功能/空中惯性/空中重力/跨越步高/人物跳高/人物加速/动作加速/开火加速/摩擦速度/跳跃速度/秒趴/火箭飞天/雷枪飞夭/腿飞天/范围拾取/探头飞天/探头路飞/马儿加速/所有载具加速/人物变大/敌人变大/广角FOV/开火肩射",
+    "tag": "stable"
+   },
+   {
+    "id": "i9",
+    "name": "超人漏打",
+    "price": 118,
+    "img": "img/item_i9.jpg",
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n透视/漏打自瞄/物资/骨骼/名字/射线/方框\n下载地址和教程：iosc.cc",
+    "tag": "stable"
+   }
+  ]
+ },
+ {
+  "key": "android",
+  "name": "安卓和平",
+  "img": "img/cat_ios.jpg",
+  "items": [
+   {
+    "id": "i10",
+    "name": "万达漏打追踪",
+    "price": 68,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n万达御尊漏打\n特色功能\n变色漏打 漏那打那 长久稳定 牛尔比之\n自描 绘制 漏打 物资绘制 应有尽有",
+    "tag": "baopei"
+   },
+   {
+    "id": "i11",
+    "name": "和平VS陀螺仪模型漏打",
+    "price": 58,
+    "img": "img/item_i11.jpg",
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n极致丝滑流畅不卡顿 高清绘图 不怕找不到敌人\n大部分人物绘制 物资 载具可DIY颜色 \n追踪极致优化 开镜 腰射 喷子 狙击 弓箭 可单独调概率\n行业最先进的陀螺仪自瞄写法淘汰掉泛滥模块版\n极致优化 全陀螺仪玩家 键鼠玩家 手搓玩家均可使用",
+    "tag": "reco"
+   },
+   {
+    "id": "i12",
+    "name": "Aipro白金",
+    "price": 48,
+    "img": "img/baijin.jpg",
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\nAipro白金真硬件模型漏打追锁，真硬件级子弹追总 无需注入进程或修改游戏代码，采用业内领先的硬件内核技术，实现安全追总。\nPhysx碰撞模型漏打追总适配全枪械\n并非过检测追总用于蒙骗用户 欢迎打假，保证百分百分硬件",
+    "tag": "fuli"
+   },
+   {
+    "id": "g_prpwwm",
+    "name": "定制版机刷单透",
+    "price": 298,
+    "orig": 478,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：安卓 8 - 16 全机型通用，ROOT / 框架环境均可直装\n\n定制版：单人单包超强稳定，俱乐部/代练首选\n非市面免费烂大街驱动，独家驱动，流畅稳定。\n机刷单透：远程系统刷入，开机上游戏既有效果-自带解密，绘制/手持/物资/雷达/手雷预警/自定义颜色/防录\n拍下后卡网会自动下发网盘及使用教程",
+    "stock": 6
+   }
+  ]
+ },
+ {
+  "key": "wz",
+  "name": "IOS 王者",
+  "img": "img/cat_wz.png",
+  "items": [
+   {
+    "id": "g_70xdlm",
+    "name": "王者Core自签版（全系统）",
+    "price": 108,
+    "orig": 168,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n✅功能说明：过直播、绘制、方框、射线、暴露未暴露视野、技能CD、野怪CD、兵线等\n✅ 非直装辅助！游戏客户端依旧使用App Store下载的王者荣耀客户端即可！本辅助非市场带防的直装王者客户端，辅助是独立的ipa文件，自签方式安装在设备上即可使用。",
+    "stock": 4
+   },
+   {
+    "id": "g_s8ipwn",
+    "name": "王者助手W4（全系统）",
+    "price": 148,
+    "orig": 238,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n王者荣耀- IOS全系统绘制（W4）\n功能：自瞄、皮肤美化、绘制、头像、射线、方框、血量、小地图、",
+    "stock": 10
+   },
+   {
+    "id": "g_1tgwee",
+    "name": "国服/国际服-GG王者绘制（全系统）",
+    "price": 168,
+    "orig": 268,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n过直播+绘制+视距+内透+英雄预判自瞄\n所有功能都可以自定义调节与开关\n下单后自动下发网盘及使用教程",
+    "stock": 1
+   }
+  ]
+ },
+ {
+  "key": "delta",
+  "name": "IOS 三角洲",
+  "img": "img/cat_delta.jpg",
+  "items": [
+   {
+    "id": "g_e4lowo",
+    "name": "Tcll（全系统）",
+    "price": 128,
+    "orig": 198,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\nTCII强势来袭，拯救拉闸市场\n【核心功能】\n全图绘制：开启上第视角，掌控全局动态\n实时信息：实时显示血量、人物、物资\n超流畅体验：高刷绘制，不卡顿、不掉帧、不偏框\n多功能集成：全功能绘制、敌人预警、自喵、追踪",
+    "stock": 10
+   },
+   {
+    "id": "g_h94too",
+    "name": "RikkaM 雷达（全系统）",
+    "price": 288,
+    "orig": 458,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\nRikkaM\n软路由 不会卡绘制 不漏人 0拉闸\n需要：全能签and小火件 （购买后都有下载链接）\n一个苹果手机也可以使用有小窗 一台安卓打游戏 一台苹果看雷达也可以\n装雷哒的设备必须是ios。如果只有一台设备的话就都下在ios设备上 电脑只能看共享链接 如果有两台iOS的话，那就玩游戏的下小火煎，看雷哒的下雷哒和全能签",
+    "stock": 1
+   }
+  ]
+ },
+ {
+  "key": "valor",
+  "name": "IOS 无畏",
+  "img": "img/cat_valor.jpg",
+  "items": [
+   {
+    "id": "g_byuby0",
+    "name": "WeGame无畏",
+    "price": 168,
+    "orig": 268,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：自瞄/人数/射线/方框/骨骼/信息/血量/距离/手持/背敌\n下单后自动下发网盘及使用教程",
+    "stock": 3
+   },
+   {
+    "id": "g_qvqe3z",
+    "name": "无畏/GG绘制",
+    "price": 158,
+    "orig": 248,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：自瞄、 绘制、射线、方框、信息、手持、背敌等\n下单后自动下发网盘及使用教程",
+    "stock": 2
+   },
+   {
+    "id": "g_7lg4hf",
+    "name": "噜噜/无畏（全系统/自瞄无后）",
+    "price": 178,
+    "orig": 278,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：自瞄(丝滑锁定)午后全能视觉:射线/方框/骨骼/ 距离/血条/直播模式.. \n下单后自动下发网盘及使用教程"
+   },
+   {
+    "id": "g_5j5xv7",
+    "name": "无畏/钢铁侠皮卡丘（全系统/自瞄）9.22更新",
+    "price": 138,
+    "orig": 218,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：自瞄/人数/射线/方框/骨骼/信息/血量/距离/手持/背敌\n下单后自动下发网盘及使用教程",
+    "stock": 20
+   }
+  ]
+ },
+ {
+  "key": "lolm",
+  "name": "IOS 联盟LOLM",
+  "img": "img/cat_lolm.jpg",
+  "items": [
+   {
+    "id": "g_gucro3",
+    "name": "LOLM/GG（11.4更新）",
+    "price": 148,
+    "orig": 238,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：全图显示敌方英雄、兵线、眼位、小地图显示敌方英雄头像\n内置防封，无需端口\n下单后自动下发网盘及使用教程",
+    "stock": 5
+   }
+  ]
+ },
+ {
+  "key": "cf",
+  "name": "IOS CF穿越",
+  "img": "img/cat_cf.jpg",
+  "items": [
+   {
+    "id": "g_h44sow",
+    "name": "CFM/GG绘制（10.25更新）",
+    "price": 148,
+    "orig": 238,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：自瞄、 绘制、射线、方框、信息、手持、背敌等\n下单后自动下发网盘及使用教程",
+    "stock": 7
+   },
+   {
+    "id": "g_qmdh8x",
+    "name": "TroCFM内透（全系统）",
+    "price": 158,
+    "orig": 248,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：内透/吸附自瞄",
+    "stock": 10
+   }
+  ]
+ },
+ {
+  "key": "rust",
+  "name": "IOS 失控",
+  "img": "img/cat_rust.jpg",
+  "items": [
+   {
+    "id": "g_c094e7",
+    "name": "Rustmobile自瞄/追踪（全系统）",
+    "price": 198,
+    "orig": 318,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n安装方式：全能签、轻松签、万能签、巨魔等\n功能：领地透、自动拾取、无后、追踪、自瞄、绘制、射线、信息、盒子、过直播等等",
+    "stock": 3
+   },
+   {
+    "id": "g_cktjmp",
+    "name": "全系统Core-sk自签",
+    "price": 98,
+    "orig": 158,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：✅全功能绘制、自瞄、自动采集\n下单后自动下发网盘及使用教程",
+    "stock": 27
+   }
+  ]
+ },
+ {
+  "key": "tool",
+  "name": "绿盾/巨魔/小号",
+  "img": "img/cat_tool.jpg",
+  "items": [
+   {
+    "id": "g_i81llt",
+    "name": "DG绿盾",
+    "price": 78,
+    "orig": 118,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n过设备环境检测✔️\n过设备脸问题=✔️\n（环境检测问题）导致的高风险✔️\n下单后自动下发网盘及使用教程",
+    "stock": 5
+   },
+   {
+    "id": "g_gg7378",
+    "name": "巨魔安装器",
+    "price": 58,
+    "orig": 88,
+    "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n巨魔网页在线安装/免越狱TrollStore2+在线安装\n下单后自动下发网盘及使用教程",
+    "stock": 4
+   }
+  ]
+ }
+]
+/* DATA_END */;
+
+    /* 数据全部走 CATEGORIES，这里建立 id 索引 */
+    const ITEM_INDEX = {};
+    let CATEGORY_INDEX = {};
+    CATEGORIES.forEach(c => {
+        c.items.forEach(p => { ITEM_INDEX[p.id] = p; });
+    });
+    CATEGORIES.forEach(c => { CATEGORY_INDEX[c.key] = c; });
+
+    let selectedData = null;
+    const CFG = window.SHOP_CONFIG || {};
+
+    /* ---------- 详情区媒体（图集 + 实战视频），数据全部来自 img/config.js ---------- */
+    let selMediaList = [], selMediaIdx = 0;
+
+    function mediaFor(cat, item) {
+        const out = [], seen = {};
+        const pushImg = src => { if (src && !seen[src]) { seen[src] = 1; out.push({ type: 'img', src: src }); } };
+
+        const id = item ? item.id : '';
+        /* 发卡商品的 goods_key 会变，配置键支持商品名兜底 */
+        const own = (CFG.items || {})[id] || (item && (CFG.items || {})[item.name]) || [];
+
+        /* 商品自带的原图永远排第一张 */
+        if (item && item.img) pushImg(item.img);
+
+        /* 商品单独配了图集就只用它；没配才回退到分类图集 */
+        if (own && own.length) own.forEach(pushImg);
+        else ((CFG.gallery || {})[cat.key] || []).forEach(pushImg);
+
+        /* 视频：商品级（id 或名称）优先，其次分类级 */
+        const v = (CFG.itemVideos || {})[id] || (item && (CFG.itemVideos || {})[item.name]) || (CFG.videos || {})[cat.key];
+        if (v) out.push({ type: 'video', src: v });
+
+        /* 全都没配时用分类图兜一张 */
+        if (!out.length) pushImg(cat.img);
+        return out;
+    }
+
+    function renderSelMedia() {
+        const box = document.getElementById('sel-media');
+        if (!selMediaList.length) { box.innerHTML = ''; box.classList.add('hidden'); return; }
+        box.classList.remove('hidden');
+        const m = selMediaList[selMediaIdx];
+        const cls = 'w-full max-h-72 object-contain mx-auto block rounded-lg shadow-[0_0_10px_rgba(56,189,248,0.15)] border border-slate-700/50 bg-slate-900/60';
+        let html = m.type === 'video'
+            ? `<video src="${m.src}" controls playsinline preload="metadata" class="w-full max-h-72 rounded-lg border border-slate-700/50 bg-black mx-auto block"></video>`
+            : `<img src="${m.src}" class="${cls}" alt="商品展示图" onclick="mediaStep(1)">`;
+        if (selMediaList.length > 1) {
+            html += `
+            <button onclick="mediaStep(-1)" aria-label="上一张" class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-900/80 border border-slate-600 text-slate-300 text-sm font-bold active:scale-95 transition">‹</button>
+            <button onclick="mediaStep(1)" aria-label="下一张" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-900/80 border border-slate-600 text-slate-300 text-sm font-bold active:scale-95 transition">›</button>
+            <span class="absolute bottom-2 right-2 text-[10px] bg-slate-900/80 border border-slate-600 px-2 py-0.5 rounded text-slate-300">${selMediaIdx + 1} / ${selMediaList.length}</span>`;
+        }
+        box.innerHTML = `<div class="relative">${html}</div>`;
+    }
+
+    function mediaStep(d) {
+        if (!selMediaList.length) return;
+        selMediaIdx = (selMediaIdx + d + selMediaList.length) % selMediaList.length;
+        renderSelMedia();
+    }
+    let currentKey = null;
+
+    /* 徽标生成 */
+    function getTagHtml(tag, name, tag2) {
+        let html = '';
+        if (name === 'Via全系统内透') {
+            html += '<span class="text-[10px] tag-stable px-1.5 py-0.5 rounded shadow-sm ml-2 font-bold">(福利价)</span>'
+                  + '<span class="text-[10px] tag-stable px-1.5 py-0.5 rounded shadow-sm ml-2 font-bold">(稳定)</span>';
+        } else {
+            if (tag === 'reco')   html += '<span class="text-[10px] tag-reco px-1.5 py-0.5 rounded shadow-sm ml-2 font-bold">(推荐)</span>';
+            if (tag === 'fuli')   html += '<span class="text-[10px] tag-stable px-1.5 py-0.5 rounded shadow-sm ml-2 font-bold">(福利价)</span>';
+            if (tag === 'baopei') html += '<span class="text-[10px] tag-stable px-1.5 py-0.5 rounded shadow-sm ml-2 font-bold">(封号包赔(高端局必备))</span>';
+            if (tag === 'stable') html += '<span class="text-[10px] tag-stable px-1.5 py-0.5 rounded shadow-sm ml-2 font-bold">(稳定(封号包退))</span>';
+        }
+        if (tag2 === 'reco') {
+            html += '<span class="text-[10px] tag-reco px-1.5 py-0.5 rounded shadow-sm ml-2 font-bold">(推荐)</span>';
+        }
+        return html;
+    }
+
+    /* 分类条渲染：三列平铺，所有分类一屏可见 */
+    function renderTabs() {
+        const bar = document.getElementById('tab-bar');
+        bar.innerHTML = CATEGORIES.map((c, i) =>
+            `<button class="tab-btn px-1 py-2 rounded-lg text-[10px] sm:text-[11px] font-bold leading-tight bg-slate-800/80 border border-slate-700/50 shadow-lg truncate ${i === 0 ? 'active' : ''}"
+                     data-key="${c.key}" onclick="showTab('${c.key}', this)">${c.name}</button>`
+        ).join('');
+    }
+
+    function showTab(key, btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        const target = btn || document.querySelector(`.tab-btn[data-key="${key}"]`);
+        if (target) target.classList.add('active');
+
+        currentKey = key;
+        const cat = CATEGORY_INDEX[key];
+        const container = document.getElementById('product-list');
+        container.innerHTML = '';
+
+        if (!cat || cat.items.length === 0) {
+            container.innerHTML = '<div class="glass-panel p-6 rounded-xl text-center text-slate-400 text-sm">该分类暂无商品，敬请期待</div>';
+        } else {
+            /* 排序：本店原有商品全部置顶，其后是发卡站商品；同组内按价格升序 */
+            const isShop = p => p.id.indexOf('g_') === 0;
+            const sorted = cat.items.slice().sort((a, b) => {
+                const d = (isShop(a) ? 1 : 0) - (isShop(b) ? 1 : 0);
+                return d !== 0 ? d : a.price - b.price;
+            });
+            sorted.forEach(p => {
+                container.innerHTML += `
+                <div class="product-card cursor-pointer bg-slate-800/60 p-3 rounded-lg mb-2.5 flex items-start justify-between gap-3"
+                     onclick="selectProduct('${p.id}', this)">
+                    <div class="min-w-0 flex-1">
+                        <div class="font-bold text-white text-[14px] flex flex-wrap items-center leading-snug">
+                            <span class="break-words">${p.name}</span>
+                            ${getTagHtml(p.tag, p.name, p.tag2)}
+                        </div>
+                        <div class="flex items-center gap-2 mt-2 text-[10px] text-slate-500">
+                            ${p.id.indexOf('g_') === 0 ? '<span class="text-emerald-500/80">⚡ 秒发</span>' : '<span class="text-sky-500/70">🛡️ 官方直营</span>'}
+                            ${typeof p.stock === 'number' && p.stock > 0 ? `<span>库存 ${p.stock}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0 pt-0.5">
+                        <div class="text-sky-400 font-bold text-[13px] drop-shadow-[0_0_2px_rgba(56,189,248,0.8)]">¥${p.price.toFixed(2)}</div>
+                        ${p.orig ? `<div class="text-[10px] text-slate-500 line-through mt-0.5">¥${p.orig.toFixed(2)}</div>` : ''}
+                    </div>
+                </div>`;
+            });
+        }
+
+        document.getElementById('selected-box').classList.add('hidden');
+        document.getElementById('price-display').innerText = '¥0.00';
+        const po = document.getElementById('price-orig');
+        if (po) { po.innerText = ''; po.classList.add('hidden'); }
+        document.getElementById('payBtn').innerText = '立即下单 · 扫码支付';
+        document.getElementById('payBtn').disabled = false;
+        selectedData = null;
+    }
+
+    function selectProduct(id, el) {
+        document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+        if (el) el.classList.add('selected');
+
+        selectedData = ITEM_INDEX[id];
+        document.getElementById('selected-box').classList.remove('hidden');
+        document.getElementById('sel-name').innerText = selectedData.name;
+
+        /* 元信息行：库存 / 来源 */
+        const meta = document.getElementById('sel-meta');
+        const bits = [];
+        if (typeof selectedData.stock === 'number' && selectedData.stock > 0) bits.push(`<span class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-slate-400">库存 ${selectedData.stock}</span>`);
+        if (selectedData.id.indexOf('g_') === 0) bits.push('<span class="text-[10px] bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded text-emerald-400">付款后立即发网盘</span>');
+        else bits.push('<span class="text-[10px] bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 rounded text-sky-400">本站收款码 · 客服直发</span>');
+        /* 划线价：现价与省额，制造比价参照 */
+        if (selectedData.orig && selectedData.orig > selectedData.price) {
+            const save = (selectedData.orig - selectedData.price).toFixed(0);
+            bits.push(`<span class="text-[10px] bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded text-rose-400 font-bold">限时价 · 立省 ¥${save}</span>`);
+            bits.push(`<span class="text-[10px] text-slate-500 line-through">原价 ¥${selectedData.orig.toFixed(2)}</span>`);
+        }
+        meta.innerHTML = bits.join('');
+
+        const descContainer = document.getElementById('sel-desc');
+        descContainer.innerHTML = '';
+
+        /* 展示图集 / 实战视频：商品级配置优先，其次分类级，全部来自 img/config.js */
+        const cat = CATEGORY_INDEX[currentKey] || { key: '' };
+        selMediaList = mediaFor(cat, selectedData);
+        selMediaIdx = 0;
+        renderSelMedia();
+
+        const textNode = document.createElement('div');
+        textNode.innerText = selectedData.desc || '暂无详细介绍，详情请咨询客服。';
+        descContainer.appendChild(textNode);
+
+        document.getElementById('price-display').innerText = '¥' + selectedData.price.toFixed(2);
+        /* 支付区补划线原价，和卡片/详情形成同一套价格锚 */
+        const origEl = document.getElementById('price-orig');
+        if (origEl) {
+            if (selectedData.orig && selectedData.orig > selectedData.price) {
+                origEl.innerText = '原价 ¥' + selectedData.orig.toFixed(2);
+                origEl.classList.remove('hidden');
+            } else {
+                origEl.innerText = '';
+                origEl.classList.add('hidden');
+            }
+        }
+
+        const btn = document.getElementById('payBtn');
+        btn.disabled = false;
+        btn.innerText = '立即下单 · 扫码支付';
+
+        setTimeout(() => {
+            document.getElementById('selected-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+    }
+
+    /* 自定义轻量消息提示 */
+    function showCustomAlert(msg) {
+        const toast = document.getElementById('toastMessage');
+        toast.innerText = msg;
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.opacity = '1', 10);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.style.display = 'none', 300);
+        }, 3000);
+    }
+
+    function jumpPayApp() {
+        const payMethod = document.querySelector('input[name="payMethod"]:checked').value;
+        window.location.href = payMethod === 'wechat' ? 'weixin://' : 'alipays://';
+    }
+
+    /* 付款完成：把订单信息写进剪贴板，同时拉起企微客服，减少来回打字 */
+    function goKfAfterPay() {
+        const name = selectedData ? selectedData.name : '';
+        const amt = selectedData ? selectedData.price.toFixed(2) : '';
+        const contact = (document.getElementById('contact').value || '').trim();
+        const text = `已付款：${name} ¥${amt}${contact ? '，联系方式：' + contact : ''}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(() => {});
+        }
+        const url = (CFG.contact || {}).kfLink || '';
+        if (url) window.open(url, '_blank');
+        showCustomAlert('订单信息已复制，发给客服即可发货');
+    }
+
+    /* 收款码走网络地址：加载成功显示码，失败显示提示，不留空白框 */
+    function qrLoadState(failed) {
+        const tip = document.getElementById('qrErrTip');
+        const img = document.getElementById('qrImg');
+        if (!tip || !img) return;
+        tip.style.display = failed ? 'flex' : 'none';
+        img.style.visibility = failed ? 'hidden' : 'visible';
+    }
+
+    function openModal(id) {
+        const modal = document.getElementById(id);
+        modal.style.display = 'flex';
+        modal.firstElementChild.style.transform = 'scale(0.95)';
+        modal.firstElementChild.style.opacity = '0';
+        setTimeout(() => {
+            modal.firstElementChild.style.transition = 'all 0.2s ease-out';
+            modal.firstElementChild.style.transform = 'scale(1)';
+            modal.firstElementChild.style.opacity = '1';
+        }, 10);
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+        if (id === 'payModal') document.getElementById('pay-status-msg').innerText = '';
+    }
+
+    function updateJumpPayButton() {
+        const payMethod = document.querySelector('input[name="payMethod"]:checked').value;
+        const btn = document.getElementById('jumpPayBtn');
+        if (btn) btn.innerText = payMethod === 'wechat' ? '截图后 一键跳转微信' : '截图后 一键跳转支付宝';
+    }
+
+    document.querySelectorAll('input[name="payMethod"]').forEach(input => {
+        input.addEventListener('change', updateJumpPayButton);
+    });
+
+    function showPayModal() {
+        if (!selectedData) {
+            showCustomAlert('系统提示：请先选择您需要的商品！');
+            return;
+        }
+
+        /* 全部商品统一走本站收款码：选码 → 扫码付款 → 客服凭截图发货，页面内不出现任何外站卡片链接 */
+        const contact = document.getElementById('contact').value.trim();
+        if (!contact) {
+            showCustomAlert('系统提示：请先填写您的QQ或联系方式，方便为您发卡！');
+            return;
+        }
+
+        const payMethod = document.querySelector('input[name="payMethod"]:checked').value;
+        updateJumpPayButton();
+        const img = document.getElementById('qrImg');
+        document.getElementById('payTitle').innerText = payMethod === 'wechat' ? '微信扫码支付' : '支付宝扫码支付';
+
+        /* 收款码来自 img/config.js 的 pay 配置（网络地址），换码只改配置文件里那一行 */
+        const qrSrc = (CFG.pay || {})[payMethod] || '';
+        qrLoadState(0);
+        img.src = qrSrc;
+
+        document.getElementById('pay-amount-display').innerText = '¥' + selectedData.price.toFixed(2);
+        openModal('payModal');
+    }
+
+    /* 初始化：把 config 里的联系方式 / 收款码套到页面上 */
+    (function applyConfig() {
+        const c = CFG.contact || {};
+        if (c.kfLink) document.getElementById('cfg-kf-link').href = c.kfLink;
+        if (c.kfQr) document.getElementById('cfg-kf-qr').src = c.kfQr;
+        if (c.kfTip) document.getElementById('cfg-kf-tip').innerText = c.kfTip;
+        if (c.contactPlaceholder) document.getElementById('contact').placeholder = c.contactPlaceholder;
+    })();
+
+    document.getElementById('goods-count').innerText = Object.keys(ITEM_INDEX).length;
+    renderTabs();
+    showTab(CATEGORIES[0].key, document.querySelector('.tab-btn'));
+</script>
+</body>
+</html>
