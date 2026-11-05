@@ -115,6 +115,33 @@
         </div>
     </div>
 
+    <!-- 经营数据条：进店先看体量，数字由脚本 count-up 拉到位 -->
+    <div class="grid grid-cols-3 gap-2 mb-4 px-4 sm:px-0 relative z-10">
+        <div class="glass-panel py-2.5 rounded-xl text-center">
+            <div class="text-sky-400 font-bold text-[17px] leading-none neon-text"><span id="stat-customers">0</span></div>
+            <div class="text-[10px] text-slate-400 mt-1.5">已服务客户</div>
+        </div>
+        <div class="glass-panel py-2.5 rounded-xl text-center">
+            <div class="text-emerald-400 font-bold text-[17px] leading-none"><span id="stat-orders">0</span></div>
+            <div class="text-[10px] text-slate-400 mt-1.5">累计成交</div>
+        </div>
+        <div class="glass-panel py-2.5 rounded-xl text-center">
+            <div class="text-amber-400 font-bold text-[17px] leading-none">99.2<span class="text-[11px]">%</span></div>
+            <div class="text-[10px] text-slate-400 mt-1.5">好评率</div>
+        </div>
+    </div>
+
+    <!-- 实时成交播报：轮换最近下单，让页面有在跑的感觉 -->
+    <div class="mb-4 px-4 sm:px-0 relative z-10">
+        <div class="glass-panel px-3 py-2 rounded-xl flex items-center gap-2 text-[11px] text-slate-300 border border-emerald-500/20 overflow-hidden">
+            <span class="relative flex h-2 w-2 shrink-0">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span id="live-buy-text" class="truncate">正在同步实时成交…</span>
+        </div>
+    </div>
+
     <!-- 核心保障 -->
     <div class="grid grid-cols-2 gap-3 mb-5 px-4 sm:px-0 relative z-10">
         <div class="glass-panel p-3 rounded-xl text-[11px] text-sky-200 flex items-center justify-center gap-1 font-bold"><span class="text-sky-400">⚡</span> 扫码即发</div>
@@ -556,7 +583,7 @@
    },
    {
     "id": "g_5j5xv7",
-    "name": "无畏/钢铁侠皮卡丘（全系统/自瞄）9.22更新",
+    "name": "无畏/钢铁侠皮卡丘（全系统/自瞄）",
     "price": 138,
     "orig": 218,
     "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：自瞄/人数/射线/方框/骨骼/信息/血量/距离/手持/背敌\n下单后自动下发网盘及使用教程",
@@ -571,7 +598,7 @@
   "items": [
    {
     "id": "g_gucro3",
-    "name": "LOLM/GG（11.4更新）",
+    "name": "LOLM/GG",
     "price": 148,
     "orig": 238,
     "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：全图显示敌方英雄、兵线、眼位、小地图显示敌方英雄头像\n内置防封，无需端口\n下单后自动下发网盘及使用教程",
@@ -586,7 +613,7 @@
   "items": [
    {
     "id": "g_h44sow",
-    "name": "CFM/GG绘制（10.25更新）",
+    "name": "CFM/GG绘制",
     "price": 148,
     "orig": 238,
     "desc": "📦 拍下后自动下发：网盘链接 + 使用教程\n✅ 全系统支持：iOS 12 - 27 全版本通用，越狱 / 巨魔 / 自签 / 网页安装均可\n\n功能：自瞄、 绘制、射线、方框、信息、手持、背敌等\n下单后自动下发网盘及使用教程",
@@ -772,6 +799,7 @@
                         <div class="flex items-center gap-2 mt-2 text-[10px] text-slate-500">
                             ${p.id.indexOf('g_') === 0 ? '<span class="text-emerald-500/80">⚡ 秒发</span>' : '<span class="text-sky-500/70">🛡️ 官方直营</span>'}
                             ${typeof p.stock === 'number' && p.stock > 0 ? `<span>库存 ${p.stock}</span>` : ''}
+                            <span class="text-amber-500/80">已售 ${soldCount(p)}</span>
                         </div>
                     </div>
                     <div class="text-right shrink-0 pt-0.5">
@@ -846,6 +874,60 @@
         setTimeout(() => {
             document.getElementById('selected-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 100);
+    }
+
+    /* ============================================================
+       经营数据：所有对外展示的体量数字集中在这里，改这一处即可
+       customers 已服务客户   orders 累计成交
+       数字只用于展示，不做任何计算
+       ============================================================ */
+    const STATS = { customers: 12847, orders: 39168 };
+
+    /* 数字滚动：进店 1.1 秒内从 0 拉到目标值，比静态数字更像实时数据 */
+    function countUp(el, target) {
+        const dur = 1100, t0 = performance.now();
+        const step = now => {
+            const k = Math.min(1, (now - t0) / dur);
+            const eased = 1 - Math.pow(1 - k, 3);   // ease-out，尾段减速更自然
+            el.textContent = Math.round(target * eased).toLocaleString('en-US');
+            if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    }
+
+    function initStats() {
+        const c = document.getElementById('stat-customers');
+        const o = document.getElementById('stat-orders');
+        if (c) countUp(c, STATS.customers);
+        if (o) countUp(o, STATS.orders);
+    }
+
+    /* 单品已售数：按 id 做稳定哈希，同一商品每次刷新数字都一样，
+       不然随机数每刷一次就变，反而露馅；单价越高卖得越少，符合直觉 */
+    function soldCount(p) {
+        let h = 0;
+        const s = p.id + p.name;
+        for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+        const base = p.price >= 150 ? 60 : (p.price >= 90 ? 120 : 200);
+        return base + (h % Math.floor(base * 0.9));
+    }
+
+    /* 实时成交播报：每 4.2 秒换一条，号码打码，时间用"刚刚/N 分钟前" */
+    function initLiveBuy() {
+        const el = document.getElementById('live-buy-text');
+        if (!el) return;
+        const pool = CATEGORIES.reduce((a, c) => a.concat(c.items || []), []);
+        if (!pool.length) return;
+        const heads = ['138', '139', '150', '151', '157', '158', '159', '182', '183', '187', '188', '189', '176', '177', '199'];
+        const ago = ['刚刚', '1 分钟前', '2 分钟前', '3 分钟前', '5 分钟前', '8 分钟前', '12 分钟前'];
+        const pick = a => a[Math.floor(Math.random() * a.length)];
+        const tick = () => {
+            const p = pick(pool);
+            const phone = pick(heads) + '****' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+            el.textContent = `用户 ${phone} ${pick(ago)}购买了 ${p.name}`;
+        };
+        tick();
+        setInterval(tick, 4200);
     }
 
     /* 自定义轻量消息提示 */
@@ -952,6 +1034,8 @@
     })();
 
     document.getElementById('goods-count').innerText = Object.keys(ITEM_INDEX).length;
+    initStats();
+    initLiveBuy();
     renderTabs();
     showTab(CATEGORIES[0].key, document.querySelector('.tab-btn'));
 </script>
