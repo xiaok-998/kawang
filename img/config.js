@@ -83,7 +83,7 @@ window.SHOP_CONFIG = {
         '定制版机刷单透': ['img/street_live.png'],                   // 街头实战大图
 
         /* ===== CF 穿越 ===== */
-        'CFM/GG绘制（10.25更新）': ['img/cf_menu.jpg', 'img/cf_record.jpg'],  // CF 辅助菜单 + 战绩
+        'CFM/GG绘制': ['img/cf_menu.jpg', 'img/cf_record.jpg'],  // CF 辅助菜单 + 战绩
         'TroCFM内透（全系统）': ['img/cf_live.jpg'],                       // CF 真机暗光实拍
 
         /* ===== 失控 ===== */
@@ -93,7 +93,7 @@ window.SHOP_CONFIG = {
     /* ---------- 商品级视频：按商品 id 配，排在图片之后 ---------- */
     itemVideos: {
         'TroCFM内透（全系统）': 'img/cf_demo.mp4',   // CF 透视上色实战录屏
-        'CFM/GG绘制（10.25更新）': 'img/cf_demo.mp4',
+        'CFM/GG绘制': 'img/cf_demo.mp4',
     },
 
     /* ---------- 分类兜底图集 ----------
