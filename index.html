@@ -215,6 +215,22 @@
 
         <button id="payBtn" class="w-full bg-gradient-to-r from-sky-600 to-blue-600 py-3 rounded-lg font-bold text-white text-[15px] shadow-[0_0_20px_rgba(2,132,199,0.4)] transition hover:shadow-[0_0_30px_rgba(2,132,199,0.6)] hover:from-sky-500 hover:to-blue-500 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed" onclick="showPayModal()">立即下单 · 扫码支付</button>
     </div>
+
+    <!-- 稳定运行计时：按秒跳动，起算日写在 JS 的 UPTIME_START -->
+    <div class="mt-5 px-4 sm:px-0 relative z-10">
+        <div class="glass-panel px-4 py-3.5 rounded-xl border border-sky-500/20 text-center overflow-hidden">
+            <p class="text-[9px] text-slate-500 tracking-[0.3em] mb-2">SINCE 2021</p>
+            <p class="text-[12px] text-slate-400 leading-relaxed">
+                已稳定运行
+                <span id="up-y" class="text-sky-400 font-bold text-[14px]">5</span> 年
+                <span id="up-d" class="text-sky-400 font-bold text-[14px]">0</span> 天
+            </p>
+            <div class="mt-1.5 font-mono font-bold text-[16px] text-emerald-400 tracking-[0.14em] tabular-nums">
+                <span id="up-h">00</span><span class="text-slate-600 px-0.5">:</span><span id="up-m">00</span><span class="text-slate-600 px-0.5">:</span><span id="up-s" class="text-amber-400">00</span>
+            </div>
+            <p class="text-[9px] text-slate-600 mt-1.5 tracking-wider">时 · 分 · 秒 · 实时</p>
+        </div>
+    </div>
 </div>
 
 <!-- 提示框 (取代alert) -->
@@ -930,6 +946,45 @@
         setInterval(tick, 4200);
     }
 
+    /* ============================================================
+       稳定运行计时：页面底部按秒跳动
+       起算日改 UPTIME_START 一处即可，年/天按周年纪念日推算，
+       时分秒是纪念日之后剩余的真实差值，不是装饰数字
+       ============================================================ */
+    const UPTIME_START = new Date('2021-05-20T09:00:00+08:00');
+
+    function initUptime() {
+        const y = document.getElementById('up-y');
+        if (!y) return;
+        const d = document.getElementById('up-d');
+        const h = document.getElementById('up-h');
+        const m = document.getElementById('up-m');
+        const s = document.getElementById('up-s');
+        const pad = n => String(n).padStart(2, '0');
+
+        const render = () => {
+            const now = new Date();
+            let years = now.getFullYear() - UPTIME_START.getFullYear();
+            const anniv = new Date(UPTIME_START);
+            anniv.setFullYear(UPTIME_START.getFullYear() + years);
+            if (anniv > now) {          // 今年的周年还没到，退一年，避免出现负天数
+                years--;
+                anniv.setFullYear(UPTIME_START.getFullYear() + years);
+            }
+            const ms = now - anniv;
+            y.textContent = years;
+            d.textContent = Math.floor(ms / 86400000);
+            h.textContent = pad(Math.floor(ms % 86400000 / 3600000));
+            m.textContent = pad(Math.floor(ms % 3600000 / 60000));
+            s.textContent = pad(Math.floor(ms % 60000 / 1000));
+        };
+
+        /* 对齐到整秒再排下一次，setInterval 会累积漂移，秒数看着会跳格 */
+        const loop = () => { render(); setTimeout(loop, 1000 - (Date.now() % 1000)); };
+        render();
+        loop();
+    }
+
     /* 自定义轻量消息提示 */
     function showCustomAlert(msg) {
         const toast = document.getElementById('toastMessage');
@@ -1036,6 +1091,7 @@
     document.getElementById('goods-count').innerText = Object.keys(ITEM_INDEX).length;
     initStats();
     initLiveBuy();
+    initUptime();
     renderTabs();
     showTab(CATEGORIES[0].key, document.querySelector('.tab-btn'));
 </script>
